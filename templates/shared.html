@@ -1,0 +1,267 @@
+{% extends "base.html" %}
+
+{% block title %}Shared Password | SecurePass Manager{% endblock %}
+
+{% block content %}
+<div class="shared-container">
+    <div class="shared-header">
+        <div class="logo">
+            <i class="fas fa-lock"></i>
+        </div>
+        <h1>Access Shared Password</h1>
+        <p>Enter the access key to view the shared password</p>
+    </div>
+    
+    <div class="shared-content">
+        <div class="access-form" id="access-form">
+            <div class="form-group">
+                <label for="access-key">Access Key</label>
+                <div class="password-input">
+                    <input type="password" id="access-key" placeholder="Enter the access key provided by the sender">
+                    <button type="button" class="toggle-password">
+                        <i class="fas fa-eye"></i>
+                    </button>
+                </div>
+            </div>
+            
+            <button class="btn btn-primary" id="access-btn">Access Password</button>
+            
+            <div class="shared-info">
+                <p><i class="fas fa-info-circle"></i> This password has been shared with you securely.</p>
+                <p><i class="fas fa-shield-alt"></i> The access key was provided separately by the person who shared this password.</p>
+            </div>
+        </div>
+        
+        <div class="password-details" id="password-details" style="display: none;">
+            <div class="detail-item">
+                <span class="detail-label">Title:</span>
+                <span class="detail-value" id="shared-title"></span>
+            </div>
+            
+            <div class="detail-item">
+                <span class="detail-label">Website:</span>
+                <span class="detail-value" id="shared-website"></span>
+                <button class="btn-icon visit-website-btn" id="visit-website">
+                    <i class="fas fa-external-link-alt"></i>
+                </button>
+            </div>
+            
+            <div class="detail-item">
+                <span class="detail-label">Username:</span>
+                <span class="detail-value" id="shared-username"></span>
+                <button class="btn-icon copy-username-btn" id="copy-username">
+                    <i class="fas fa-copy"></i>
+                </button>
+            </div>
+            
+            <div class="detail-item">
+                <span class="detail-label">Password:</span>
+                <div class="password-view-field">
+                    <input type="password" id="shared-password" readonly>
+                    <div class="password-actions">
+                        <button type="button" class="btn-icon toggle-view-password-btn">
+                            <i class="fas fa-eye"></i>
+                        </button>
+                        <button type="button" class="btn-icon copy-view-password-btn">
+                            <i class="fas fa-copy"></i>
+                        </button>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="detail-item">
+                <span class="detail-label">Category:</span>
+                <span class="detail-value" id="shared-category"></span>
+            </div>
+            
+            <div class="detail-item">
+                <span class="detail-label">Notes:</span>
+                <div class="detail-notes" id="shared-notes"></div>
+            </div>
+            
+            <div class="detail-item">
+                <span class="detail-label">Shared by:</span>
+                <span class="detail-value" id="shared-by"></span>
+            </div>
+            
+            <div class="shared-warning">
+                <p><i class="fas fa-exclamation-triangle"></i> This password is only available temporarily. It will expire after it has been viewed the maximum number of times or after the expiration time.</p>
+            </div>
+            
+            <div class="form-actions">
+                <a href="{{ url_for('index') }}" class="btn btn-secondary">Go to Login</a>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Toast notifications -->
+<div class="toast-container" id="toast-container"></div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        const shareId = '{{ share_id }}';
+        const accessForm = document.getElementById('access-form');
+        const passwordDetails = document.getElementById('password-details');
+        const accessKeyInput = document.getElementById('access-key');
+        const accessBtn = document.getElementById('access-btn');
+        
+        // Toggle password visibility
+        const toggleBtn = document.querySelector('.toggle-password');
+        toggleBtn.addEventListener('click', function() {
+            const passwordInput = document.getElementById('access-key');
+            const icon = this.querySelector('i');
+            
+            if (passwordInput.type === 'password') {
+                passwordInput.type = 'text';
+                icon.classList.remove('fa-eye');
+                icon.classList.add('fa-eye-slash');
+            } else {
+                passwordInput.type = 'password';
+                icon.classList.remove('fa-eye-slash');
+                icon.classList.add('fa-eye');
+            }
+        });
+        
+        // Toggle view password visibility
+        const toggleViewBtn = document.querySelector('.toggle-view-password-btn');
+        if (toggleViewBtn) {
+            toggleViewBtn.addEventListener('click', function() {
+                const passwordInput = document.getElementById('shared-password');
+                const icon = this.querySelector('i');
+                
+                if (passwordInput.type === 'password') {
+                    passwordInput.type = 'text';
+                    icon.classList.remove('fa-eye');
+                    icon.classList.add('fa-eye-slash');
+                } else {
+                    passwordInput.type = 'password';
+                    icon.classList.remove('fa-eye-slash');
+                    icon.classList.add('fa-eye');
+                }
+            });
+        }
+        
+        // Copy username
+        const copyUsernameBtn = document.getElementById('copy-username');
+        if (copyUsernameBtn) {
+            copyUsernameBtn.addEventListener('click', function() {
+                const username = document.getElementById('shared-username').textContent;
+                navigator.clipboard.writeText(username)
+                    .then(() => showToast('Username copied to clipboard', 'success'))
+                    .catch(err => showToast('Failed to copy username', 'error'));
+            });
+        }
+        
+        // Copy password
+        const copyPasswordBtn = document.querySelector('.copy-view-password-btn');
+        if (copyPasswordBtn) {
+            copyPasswordBtn.addEventListener('click', function() {
+                const password = document.getElementById('shared-password').value;
+                navigator.clipboard.writeText(password)
+                    .then(() => showToast('Password copied to clipboard', 'success'))
+                    .catch(err => showToast('Failed to copy password', 'error'));
+                
+                // Auto-clear clipboard after 30 seconds
+                setTimeout(() => {
+                    navigator.clipboard.readText().then(text => {
+                        if (text === password) {
+                            navigator.clipboard.writeText('');
+                        }
+                    });
+                }, 30000);
+            });
+        }
+        
+        // Visit website
+        const visitWebsiteBtn = document.getElementById('visit-website');
+        if (visitWebsiteBtn) {
+            visitWebsiteBtn.addEventListener('click', function() {
+                const website = document.getElementById('shared-website').textContent;
+                if (website) {
+                    window.open(website, '_blank');
+                }
+            });
+        }
+        
+        // Access shared password
+        accessBtn.addEventListener('click', function() {
+            const accessKey = accessKeyInput.value.trim();
+            
+            if (!accessKey) {
+                showToast('Please enter the access key', 'error');
+                return;
+            }
+            
+            fetch(`/api/shared/${shareId}`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({ access_key: accessKey })
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    // Display the shared password
+                    displaySharedPassword(data.entry);
+                } else {
+                    showToast(data.error || 'Invalid access key or expired share', 'error');
+                }
+            })
+            .catch(error => {
+                console.error('Error accessing shared password:', error);
+                showToast('An error occurred. Please try again.', 'error');
+            });
+        });
+        
+        function displaySharedPassword(entry) {
+            // Update UI elements with shared password details
+            document.getElementById('shared-title').textContent = entry.title || 'Untitled';
+            document.getElementById('shared-website').textContent = entry.website || '';
+            document.getElementById('shared-username').textContent = entry.username || '';
+            document.getElementById('shared-password').value = entry.password || '';
+            document.getElementById('shared-category').textContent = entry.category || '';
+            document.getElementById('shared-notes').textContent = entry.notes || '';
+            document.getElementById('shared-by').textContent = entry.shared_by || 'Anonymous';
+            
+            // Show/hide visit button based on whether there's a website
+            if (entry.website && (entry.website.startsWith('http://') || entry.website.startsWith('https://'))) {
+                document.getElementById('visit-website').style.display = 'inline-flex';
+            } else {
+                document.getElementById('visit-website').style.display = 'none';
+            }
+            
+            // Hide access form and show password details
+            accessForm.style.display = 'none';
+            passwordDetails.style.display = 'block';
+        }
+        
+        function showToast(message, type = 'info') {
+            const toastContainer = document.getElementById('toast-container');
+            const toast = document.createElement('div');
+            toast.className = `toast ${type}`;
+            toast.innerHTML = `
+                <span class="toast-message">${message}</span>
+                <button class="toast-close">&times;</button>
+            `;
+            
+            toastContainer.appendChild(toast);
+            
+            // Add click event for close button
+            toast.querySelector('.toast-close').addEventListener('click', function() {
+                toast.remove();
+            });
+            
+            // Auto-remove after 5 seconds
+            setTimeout(() => {
+                if (toast.parentNode) {
+                    toast.remove();
+                }
+            }, 5000);
+        }
+    });
+</script>
+{% endblock %}

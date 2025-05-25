@@ -1,0 +1,157 @@
+{% extends "base.html" %}
+
+{% block title %}Register | SecurePass Manager{% endblock %}
+
+{% block content %}
+<div class="auth-container">
+    <div class="auth-header">
+        <div class="logo">
+            <i class="fas fa-lock"></i>
+        </div>
+        <h1>Create Account</h1>
+        <p>Create a master password for your secure password manager</p>
+    </div>
+    
+    <div class="auth-form">
+        <form method="POST" action="{{ url_for('register') }}">
+            <div class="form-group">
+                <label for="username">Username</label>
+                <input type="text" id="username" name="username" required autofocus>
+            </div>
+            
+            <div class="form-group">
+                <label for="password">Master Password</label>
+                <div class="password-input">
+                    <input type="password" id="password" name="password" required minlength="8">
+                    <button type="button" class="toggle-password">
+                        <i class="fas fa-eye"></i>
+                    </button>
+                </div>
+                <div class="password-strength">
+                    <div class="strength-meter">
+                        <div class="strength-bar"></div>
+                    </div>
+                    <div class="strength-text">Password strength: <span>Weak</span></div>
+                </div>
+                <p class="password-hint">Use at least 8 characters with a mix of letters, numbers, and symbols</p>
+            </div>
+            
+            <div class="form-group">
+                <label for="confirm_password">Confirm Password</label>
+                <div class="password-input">
+                    <input type="password" id="confirm_password" name="confirm_password" required minlength="8">
+                    <button type="button" class="toggle-confirm-password">
+                        <i class="fas fa-eye"></i>
+                    </button>
+                </div>
+            </div>
+            
+            <div class="form-actions">
+                <button type="submit" class="btn btn-primary">Create Account</button>
+            </div>
+        </form>
+        
+        <div class="auth-links">
+            <p>Already have an account? <a href="{{ url_for('login') }}">Login</a></p>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        // Toggle password visibility
+        const toggleBtn = document.querySelector('.toggle-password');
+        toggleBtn.addEventListener('click', function() {
+            const passwordInput = document.getElementById('password');
+            const icon = this.querySelector('i');
+            
+            if (passwordInput.type === 'password') {
+                passwordInput.type = 'text';
+                icon.classList.remove('fa-eye');
+                icon.classList.add('fa-eye-slash');
+            } else {
+                passwordInput.type = 'password';
+                icon.classList.remove('fa-eye-slash');
+                icon.classList.add('fa-eye');
+            }
+        });
+        
+        // Toggle confirm password visibility
+        const toggleConfirmBtn = document.querySelector('.toggle-confirm-password');
+        toggleConfirmBtn.addEventListener('click', function() {
+            const confirmInput = document.getElementById('confirm_password');
+            const icon = this.querySelector('i');
+            
+            if (confirmInput.type === 'password') {
+                confirmInput.type = 'text';
+                icon.classList.remove('fa-eye');
+                icon.classList.add('fa-eye-slash');
+            } else {
+                confirmInput.type = 'password';
+                icon.classList.remove('fa-eye-slash');
+                icon.classList.add('fa-eye');
+            }
+        });
+        
+        // Password strength checker
+        const passwordInput = document.getElementById('password');
+        const strengthBar = document.querySelector('.strength-bar');
+        const strengthText = document.querySelector('.strength-text span');
+        
+        passwordInput.addEventListener('input', function() {
+            const password = this.value;
+            let strength = 0;
+            
+            // Length check
+            if (password.length >= 12) {
+                strength += 30;
+            } else if (password.length >= 8) {
+                strength += 20;
+            } else if (password.length > 0) {
+                strength += 10;
+            }
+            
+            // Character variety checks
+            if (/[A-Z]/.test(password)) strength += 15; // Uppercase
+            if (/[a-z]/.test(password)) strength += 15; // Lowercase
+            if (/[0-9]/.test(password)) strength += 15; // Numbers
+            if (/[^A-Za-z0-9]/.test(password)) strength += 15; // Symbols
+            
+            // Repeated characters check
+            if (/(.)\1{2,}/.test(password)) strength -= 10;
+            
+            // Update strength UI
+            if (strength >= 75) {
+                strengthBar.style.width = `${strength}%`;
+                strengthBar.style.backgroundColor = '#4CAF50'; // Green
+                strengthText.textContent = 'Strong';
+            } else if (strength >= 50) {
+                strengthBar.style.width = `${strength}%`;
+                strengthBar.style.backgroundColor = '#FFC107'; // Yellow
+                strengthText.textContent = 'Moderate';
+            } else if (strength >= 25) {
+                strengthBar.style.width = `${strength}%`;
+                strengthBar.style.backgroundColor = '#FF9800'; // Orange
+                strengthText.textContent = 'Weak';
+            } else {
+                strengthBar.style.width = `${strength}%`;
+                strengthBar.style.backgroundColor = '#F44336'; // Red
+                strengthText.textContent = 'Very Weak';
+            }
+        });
+        
+        // Check password match
+        const confirmInput = document.getElementById('confirm_password');
+        const form = document.querySelector('form');
+        
+        form.addEventListener('submit', function(e) {
+            if (passwordInput.value !== confirmInput.value) {
+                e.preventDefault();
+                alert('Passwords do not match!');
+            }
+        });
+    });
+</script>
+{% endblock %}
